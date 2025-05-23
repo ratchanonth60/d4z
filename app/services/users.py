@@ -8,6 +8,7 @@ from app.core.security import get_password_hash  #
 
 # Import models and security functions
 from app.models.users import User, UserCreate, UserUpdate
+from app.schemas.users import UserFilterParams
 
 
 class UserService:
@@ -64,12 +65,9 @@ class UserService:
 
     async def get_users_paginated(
         self,
+        filters: UserFilterParams,
         page: int = 1,
         page_size: int = 10,
-        # Filter parameters
-        username_contains: Optional[str] = None,
-        email_equals: Optional[str] = None,
-        is_active_status: Optional[bool] = None,
         # Sort parameters
         sort_by: Optional[str] = None,  # e.g., "username", "id"
         sort_order: str = "asc",  # "asc" or "desc"
@@ -89,16 +87,16 @@ class UserService:
 
         # Apply filters
         conditions = []
-        if username_contains:
+        if filters.username_contains:
             conditions.append(
-                User.username.ilike(f"%{username_contains}%")
+                User.username.ilike(f"%{filters.username_contains}%")
             )  # Case-insensitive like
-        if email_equals:
-            conditions.append(User.email == email_equals)
+        if filters.email_equals:
+            conditions.append(User.email == filters.email_equals)
         if (
-            is_active_status is not None
+            filters.is_active_status is not None
         ):  # Check for None explicitly because False is a valid value
-            conditions.append(User.is_active == is_active_status)
+            conditions.append(User.is_active == filters.is_active_status)
 
         if conditions:
             for condition in conditions:
@@ -136,7 +134,7 @@ class UserService:
     async def update_user(
         self, *, user_id: int, user_in: UserUpdate
     ) -> Optional[User]:  # Return ORM model
-        db_user = await self.get_user_by_id(user_id)  # Get existing user ORM model
+        db_user = await self.get_user_by_id(user_id)
         if not db_user:
             # The get_user_by_id doesn't raise 404, so we check here
             # Or you can modify get_user_by_id to raise if not found
@@ -176,3 +174,4 @@ class UserService:
         # The db_user object is now expired, but contains the data of the deleted user.
         # You might choose to return a confirmation message or the object as it was.
         return db_user
+

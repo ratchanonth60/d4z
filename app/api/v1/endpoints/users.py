@@ -12,6 +12,7 @@ from app.schemas.base_response import (
     BaseResponse,
     PaginationInfo,
 )  # Import BaseResponse
+from app.schemas.users import SortOrder, UserFilterParams, UserSortByField
 from app.services.users import UserService
 
 router = APIRouter()
@@ -26,37 +27,23 @@ def get_user_service(
 @router.get("/", response_model=BaseResponse[List[UserRead]])
 async def read_users_paginated_filtered_sorted_api(
     user_service: Annotated[UserService, Depends(get_user_service)],
+    # Filter parameters
+    filters: Annotated[UserFilterParams, Depends()],
     # Pagination parameters
     page: int = Query(1, ge=1, description="Page number, starting from 1"),
     page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
-    # Filter parameters
-    username_contains: Optional[str] = Query(
-        None, description="Filter by username (case-insensitive, partial match)"
-    ),
-    email_equals: Optional[str] = Query(
-        None, description="Filter by email (exact match)"
-    ),
-    is_active_status: Optional[bool] = Query(
-        None, description="Filter by active status (true or false)"
-    ),
     # Sort parameters
-    sort_by: Optional[str] = Query(
-        None, description="Field to sort by (e.g., 'username', 'id')"
-    ),
-    sort_order: str = Query(
-        "asc", description="Sort order: 'asc' or 'desc'", pattern="^(asc|desc)$"
-    ),
+    sort_by: Optional[UserSortByField] = Query(None),
+    sort_order: SortOrder = Query(SortOrder.ASC),
     # current_user: Annotated[User, Depends(get_current_active_user)] # TODO: Add auth
 ):
     """
     Retrieve users with pagination, filtering, and sorting.
     """
     users_orm, total_items = await user_service.get_users_paginated(
+        filters=filters,
         page=page,
         page_size=page_size,
-        username_contains=username_contains,
-        email_equals=email_equals,
-        is_active_status=is_active_status,
         sort_by=sort_by,
         sort_order=sort_order,
     )
@@ -122,4 +109,3 @@ async def delete_user_api(
     return BaseResponse(
         message="User deleted successfully", data=deleted_user_orm
     )  # FastAPI จะแปลงเป็น UserRead
-

@@ -14,6 +14,9 @@ class PaginationInfo(BaseModel):
 
 
 class BaseResponse(BaseModel, Generic[DataT]):
+    code: int = Field(
+        default=200,
+    )  # Default HTTP status code
     success: bool = True
     message: Optional[str] = None
     data: Optional[DataT] = None
