@@ -5,7 +5,8 @@ WORKDIR /app
 RUN apk add --no-cache \
   build-base \
   postgresql-dev \
-  libffi-dev 
+  libffi-dev \
+  postgresql-client
 
 # Copy requirements.txt และติดตั้ง Python packages
 COPY requirements.txt .

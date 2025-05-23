@@ -4,4 +4,7 @@ pydantic-settings
 debugpy
 asyncpg
 passlib[bcrypt]
-python-jose[cryptography]
+sqlmodel
+psycopg2[asyncpg]
+sqlalchemy
+PyJWT
