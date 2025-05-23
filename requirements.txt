@@ -1,0 +1,7 @@
+fastapi[all]
+pydantic
+pydantic-settings
+debugpy
+asyncpg
+passlib[bcrypt]
+python-jose[cryptography]
