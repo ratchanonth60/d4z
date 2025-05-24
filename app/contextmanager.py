@@ -39,3 +39,4 @@ async def lifespan(app: FastAPI):
     if hasattr(app.state, "direct_db_pool") and app.state.direct_db_pool:
         await app.state.direct_db_pool.close()
         print("Direct PostgreSQL connection pool (asyncpg) closed.")
+

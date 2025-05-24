@@ -10,6 +10,7 @@ class Base(BaseSettings):
     SECRET_KEY: str = secrets.token_urlsafe(32)  # ควรเป็นค่า random และเก็บเป็น secret จริงๆ
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # Token หมดอายุใน 30 นาที
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # Token Refresh หมดอายุใน 8 วัน
 
     class Config:
         env_file = ".env"

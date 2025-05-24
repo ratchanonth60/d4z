@@ -1,12 +1,15 @@
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 
 from fastapi import HTTPException, status
 from sqlmodel import asc, desc, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.config import settings
 from app.core.security import get_password_hash  #
 
 # Import models and security functions
+from app.models.session import Session
 from app.models.users import User, UserCreate, UserUpdate
 from app.schemas.users import UserFilterParams
 
@@ -94,9 +97,9 @@ class UserService:
         if filters.email_equals:
             conditions.append(User.email == filters.email_equals)
         if (
-            filters.is_active_status is not None
+            filters.is_active is not None
         ):  # Check for None explicitly because False is a valid value
-            conditions.append(User.is_active == filters.is_active_status)
+            conditions.append(User.is_active == filters.is_active)
 
         if conditions:
             for condition in conditions:
@@ -174,4 +177,58 @@ class UserService:
         # The db_user object is now expired, but contains the data of the deleted user.
         # You might choose to return a confirmation message or the object as it was.
         return db_user
+
+    # --- UserSession (Refresh Token) Methods ---
+    async def create_user_session(
+        self, user_id: int, refresh_token_value: str
+    ) -> Session:
+        expires_delta = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)  #
+        expires_at_dt = datetime.now(timezone.utc) + expires_delta
+
+        user_session = Session(
+            user_id=user_id,
+            refresh_token=refresh_token_value,
+            expires_at=expires_at_dt,
+            is_active=True,
+        )
+        self.db_session.add(user_session)
+        await self.db_session.commit()
+        await self.db_session.refresh(user_session)
+        return user_session
+
+    async def get_user_session_by_token(
+        self, refresh_token_value: str
+    ) -> Optional[Session]:
+        statement = select(Session).where(Session.refresh_token == refresh_token_value)
+        result = await self.db_session.exec(statement)
+        user_session = result.first()
+        return user_session
+
+    async def deactivate_user_session(self, user_session: Session) -> Session:
+        user_session.is_active = False
+        self.db_session.add(user_session)
+        await self.db_session.commit()
+        await self.db_session.refresh(user_session)
+        return user_session
+
+    async def deactivate_all_user_sessions(self, user_id: int) -> int:
+        """Deactivates all active sessions for a given user_id and returns the count."""
+        statement = (
+            select(Session)
+            .where(Session.user_id == user_id)
+            .where(Session.is_active == True)
+        )
+        active_sessions_result = await self.db_session.exec(statement)
+        active_sessions = active_sessions_result.all()
+
+        count = 0
+        for session_to_deactivate in active_sessions:
+            session_to_deactivate.is_active = False
+            self.db_session.add(session_to_deactivate)
+            count += 1
+
+        if count > 0:
+            await self.db_session.commit()
+        # No need to refresh individual sessions if just deactivating.
+        return count
 

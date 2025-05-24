@@ -2,12 +2,11 @@ import math
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.db.sqlmodel_setup import get_sqlmodel_session
+from app.core.dependencies import get_current_active_user, get_user_service
 
 # Import ORM model and Pydantic schemas
-from app.models.users import UserCreate, UserRead, UserUpdate
+from app.models.users import User, UserCreate, UserRead, UserUpdate
 from app.schemas.base_response import (
     BaseResponse,
     PaginationInfo,
@@ -16,12 +15,6 @@ from app.schemas.users import SortOrder, UserFilterParams, UserSortByField
 from app.services.users import UserService
 
 router = APIRouter()
-
-
-def get_user_service(
-    session: Annotated[AsyncSession, Depends(get_sqlmodel_session)],
-) -> UserService:
-    return UserService(session=session)
 
 
 @router.get("/", response_model=BaseResponse[List[UserRead]])
@@ -75,6 +68,15 @@ async def create_user_api(
 ):
     db_user = await user_service.create_user(user_in=user_in)
     return BaseResponse(message="User created successfully", data=db_user)
+
+
+@router.get("/me", response_model=BaseResponse[UserRead])
+async def read_current_user_me(
+    # JWTBearer (global) ได้ทำงานไปแล้ว และตั้ง request.state.token_data
+    # get_current_active_user จะใช้ token_data นั้นเพื่อดึง User object
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    return BaseResponse(data=current_user)
 
 
 @router.get("/{user_id}", response_model=BaseResponse[UserRead])  # response_model เปลี่ยน

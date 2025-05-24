@@ -1,7 +1,7 @@
 # app/models/user_model.py
-from typing import Optional
+from typing import List, Optional
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 
 # For database table
@@ -13,6 +13,7 @@ class User(SQLModel, table=True):
     hashed_password: str = Field(nullable=False)
     is_active: bool = Field(default=True)
     is_superuser: bool = Field(default=False)
+    sessions: List["Session"] = Relationship(back_populates="user")
 
 
 # For API input when creating a user

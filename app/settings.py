@@ -1,3 +1,4 @@
+from app.core.dependencies import JWTBearer
 from contextmanager import lifespan
 from core.config import settings
 from fastapi import Depends, HTTPException
@@ -13,22 +14,35 @@ from core.exception_handlers import (
     authentication_error_handler,
 )
 
+
+EXCLUDED_PATHS = [
+    "/",  # Root path ของ app (ถ้ามี)
+    "/api/v1/auth/login",  # Login endpoint
+    "/api/v1/auth/refresh_token",  # Refresh token endpoint
+    # "/api/v1/users/register", # ถ้ามี endpoint สำหรับ register user
+    "/docs",
+    "/openapi.json",
+    "/redoc",
+]
+
 app_config = {
-    "title": settings.APP_TITLE,
-    "version": settings.APP_VERSION,
+    "title": settings.APP_TITLE,  #
+    "version": settings.APP_VERSION,  #
     "description": "API for the d4z project, structured for maintainability.",
-    "lifespan": lifespan,  # กำหนด lifespan
+    "lifespan": lifespan,  #
     "license_info": {
         "name": "Apache 2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
     },
     "exception_handlers": {
-        HTTPException: http_exception_handler,
-        RequestValidationError: validation_exception_handler,
-        Exception: internal_exception_handler,
-        AuthenticationError: authentication_error_handler,
+        HTTPException: http_exception_handler,  #
+        RequestValidationError: validation_exception_handler,  #
+        Exception: internal_exception_handler,  #
+        AuthenticationError: authentication_error_handler,  #
     },
-    # "dependencies": [Depends(JWTBearer(excluded_paths=EXCLUDED_PATHS))],
+    "dependencies": [
+        Depends(JWTBearer(excluded_paths=EXCLUDED_PATHS, auto_error=True))
+    ],  # Uncomment และใส่ EXCLUDED_PATHS
     "middleware": [
         Middleware(
             CORSMiddleware,
@@ -38,5 +52,4 @@ app_config = {
         ),
         Middleware(GZipMiddleware, minimum_size=1000, compresslevel=5),
     ],
-    # สามารถเพิ่ม configs อื่นๆ ที่มาจาก settings หรือกำหนดโดยตรง
 }

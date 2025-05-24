@@ -1,12 +1,10 @@
 from datetime import datetime, timedelta, timezone
-
-import jwt  # Changed from from jose import JWTError, jwt
+import jwt  # PyJWT
 from passlib.context import CryptContext
 
 from app.core.config import settings
 from app.schemas.token_schema import TokenData
 
-# Password Hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -18,24 +16,16 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-# JWT Creation
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def _create_token(
+    data: dict, expires_delta: timedelta, token_type: str = "access"
+) -> str:
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES  #
-        )
-    # PyJWT expects 'exp' to be a direct part of the payload
-    payload = {
-        "exp": expire,
-        "sub": to_encode.get("sub"),
-    }  # Add other claims from 'to_encode' as needed
-
-    # Add any other claims from 'to_encode' to the payload
-    # For example, if 'to_encode' could have more than just 'sub':
-    # payload.update({k: v for k, v in to_encode.items() if k not in ['sub']})
+    expire = datetime.now(timezone.utc) + expires_delta
+    # เพิ่ม token_type เข้าไปใน payload เพื่อแยกแยะระหว่าง access และ refresh token
+    # และสามารถใช้ subject (sub) สำหรับ username หรือ user_id ได้
+    payload = {"exp": expire, "sub": to_encode.get("sub"), "type": token_type}
+    if "user_id" in to_encode:  # Optional: if you want user_id in token
+        payload["user_id"] = to_encode.get("user_id")
 
     encoded_jwt = jwt.encode(
         payload,
@@ -45,27 +35,38 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> TokenData | None:
+def create_access_token(data: dict) -> str:
+    expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)  #
+    return _create_token(data=data, expires_delta=expires_delta, token_type="access")
+
+
+def create_refresh_token(data: dict) -> str:
+    expires_delta = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)  #
+    return _create_token(data=data, expires_delta=expires_delta, token_type="refresh")
+
+
+def decode_token(token: str) -> TokenData | None:
     try:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM],  #
+            algorithms=[settings.ALGORITHM],
         )
         username: str | None = payload.get("sub")
-        if username is None:
-            return None
-        return TokenData(username=username)  #
-    # PyJWT raises specific exceptions for different error conditions
+        token_type: str | None = payload.get("type")
+
+        token_data_obj = TokenData(username=username, type=token_type)
+
+        return token_data_obj if username else None
+
     except jwt.ExpiredSignatureError:
-        # Handle expired token, e.g., return None or raise a custom exception
-        print("Token has expired")
-        return None
+        # Log or handle expired token specifically if needed
+        # For JWTBearer, it will be caught and re-raised as AuthenticationError
+        raise  # Re-raise specific PyJWT errors to be caught by JWTBearer
     except jwt.InvalidTokenError:
-        # Handle other invalid token errors
-        print("Invalid token")
-        return None
-    except Exception as e:  # Generic catch for other potential jwt errors
-        print(f"An unexpected error occurred during token decoding: {e}")
-        return None
+        # Log or handle other invalid token errors
+        raise  # Re-raise
+    except Exception:
+        # Log unexpected errors
+        raise  # Re-raise
 
