@@ -105,6 +105,7 @@ Once the application is running, you can access the interactive API documentatio
 * **ReDoc:** `http://localhost:8000/redoc`
 
 ## 📁 Project Structure
+```bash
 .
 ├── app/
 │   ├── api/
@@ -131,6 +132,8 @@ Once the application is running, you can access the interactive API documentatio
 ├── Dockerfile
 ├── docker-compose.yml
 └── requirements.txt
+
+```
 
 
  (adapted and expanded)
