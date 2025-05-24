@@ -151,5 +151,4 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
-_This README was generated with assistance from an AI. Always review and tailor to your project's specific needs._
 
