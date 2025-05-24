@@ -1,18 +1,21 @@
-from datetime import datetime, timezone
-from typing import Optional
-
-from sqlmodel import Field, Relationship, SQLModel
-
-from app.models.users import User
+from tortoise import fields, models
 
 
-class Session(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id", index=True)
-    refresh_token: str = Field(unique=True, index=True)
-    expires_at: datetime = Field(index=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    is_active: bool = Field(default=True, index=True)
+class Session(models.Model):
+    id = fields.IntField(pk=True)
+    # user: fields.ForeignKeyRelation["models.User"] = fields.ForeignKeyField( # Corrected type hint
+    user: fields.ForeignKeyRelation["app.models.users.User"] = (
+        fields.ForeignKeyField(  # More explicit for Tortoise
+            "models.User", related_name="sessions", on_delete=fields.CASCADE
+        )
+    )  # "models.User" refers to the User model in the 'models' app (as defined in TORTOISE_ORM_CONFIG)
+    # related_name="sessions" allows access from User object like user.sessions
+    refresh_token = fields.CharField(
+        max_length=512, unique=True, index=True
+    )  # Increased length for safety
+    expires_at = fields.DatetimeField(index=True)
+    created_at = fields.DatetimeField(auto_now_add=True)  # Tortoise uses auto_now_add
+    is_active = fields.BooleanField(default=True, index=True)
 
-    # Relationship (optional, but good for ORM features)
-    user: Optional[User] = Relationship(back_populates="sessions")
+    def __str__(self):
+        return f"Session for user {self.user_id} - Token: {self.refresh_token[:20]}..."
