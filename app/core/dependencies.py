@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthenticationError
 from app.core.security import decode_token  # ใช้ decode_token
-from app.db.sqlmodel_setup import get_sqlmodel_session
 from app.models.users import User
 from app.schemas.token_schema import TokenData
 from app.services.users import UserService
@@ -91,10 +90,8 @@ class JWTBearer(HTTPBearer):
             return AuthenticationError(message="Not authenticated.")
 
 
-def get_user_service(
-    session: Annotated[AsyncSession, Depends(get_sqlmodel_session)],
-) -> UserService:
-    return UserService(session=session)
+def get_user_service() -> UserService:
+    return UserService()
 
 
 async def get_optional_token_data(request: Request) -> Optional[TokenData]:

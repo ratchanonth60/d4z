@@ -19,7 +19,8 @@ EXCLUDED_PATHS = [
     "/",  # Root path ของ app (ถ้ามี)
     "/api/v1/auth/login",  # Login endpoint
     "/api/v1/auth/refresh_token",  # Refresh token endpoint
-    # "/api/v1/users/register", # ถ้ามี endpoint สำหรับ register user
+    "/api/v1/auth/verify-email/",
+    "/api/v1/auth/register",
     "/docs",
     "/openapi.json",
     "/redoc",

@@ -1,9 +1,8 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 
 from fastapi import HTTPException, status
-from sqlmodel import asc, desc, func, select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.core.security import get_password_hash  #
@@ -12,127 +11,119 @@ from app.core.security import get_password_hash  #
 from app.models.session import Session
 from app.models.users import User, UserCreate, UserUpdate
 from app.schemas.users import UserFilterParams
+from app.services.utils import send_verification_email
 
 
 class UserService:
-    def __init__(self, session: AsyncSession):  # Constructor injection
-        self.db_session = session
+    async def create_user(self, *, user_in: UserCreate) -> User:
+        if not user_in.email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Email is required."
+            )
 
-    async def create_user(
-        self, *, user_in: UserCreate
-    ) -> User:  # Return the ORM model User
-        # Check if user already exists by username
-        statement_username = select(User).where(User.username == user_in.username)
-        existing_user_username_result = await self.db_session.exec(statement_username)
-        existing_user_username = existing_user_username_result.first()
-        if existing_user_username:
+        if await User.filter(username=user_in.username).exists():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Username already registered.",
             )
-        # Check if user already exists by email (if provided)
-        if user_in.email:
-            statement_email = select(User).where(User.email == user_in.email)
-            existing_user_email_result = await self.db_session.exec(statement_email)
-            existing_user_email = existing_user_email_result.first()
-            if existing_user_email:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email already registered.",
-                )
+        if await User.filter(email=user_in.email).exists():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered.",
+            )
 
         hashed_password = get_password_hash(user_in.password)
-        user_data = user_in.model_dump(
-            exclude={"password"}
-        )  # Use model_dump for Pydantic v2+
+        verification_token = secrets.token_urlsafe(32)
+        token_expires_at = datetime.now(timezone.utc) + timedelta(
+            hours=settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS or 1
+        )
 
-        # Create User ORM model instance
-        db_user = User(**user_data, hashed_password=hashed_password)
+        db_user = await User.create(
+            username=user_in.username,
+            email=user_in.email,
+            full_name=user_in.full_name,
+            hashed_password=hashed_password,
+            is_active=False,
+            is_email_verified=False,
+            email_verification_token=verification_token,
+            email_verification_token_expires_at=token_expires_at,
+            # is_superuser จะเป็น default False จาก model
+        )
 
-        self.db_session.add(db_user)
-        await self.db_session.commit()
-        await self.db_session.refresh(db_user)
-        return db_user  # Return the User ORM model instance
+        base_url = getattr(settings, "BASE_URL", "http://localhost:8000")
+        verification_link = f"{base_url}/api/v1/auth/verify-email/{verification_token}"
+        await send_verification_email(
+            db_user.email, db_user.username, verification_link
+        )  #
 
-    async def get_user_by_id(self, user_id: int) -> Optional[User]:  # Return ORM model
-        user = await self.db_session.get(User, user_id)  # SQLModel's get method
-        return user
+        return db_user
 
-    async def get_user_by_username(
-        self, username: str
-    ) -> Optional[User]:  # Return ORM model
-        statement = select(User).where(User.username == username)
-        result = await self.db_session.exec(statement)
-        user = result.first()
-        return user
+    async def get_user_by_id(self, user_id: int) -> Optional[User]:
+        return await User.get_or_none(id=user_id)
+
+    async def get_user_by_username(self, username: str) -> Optional[User]:
+        return await User.get_or_none(username=username)
 
     async def get_users_paginated(
         self,
         filters: UserFilterParams,
         page: int = 1,
         page_size: int = 10,
-        # Sort parameters
-        sort_by: Optional[str] = None,  # e.g., "username", "id"
-        sort_order: str = "asc",  # "asc" or "desc"
+        sort_by: Optional[str] = None,
+        sort_order: str = "asc",
     ) -> Tuple[List[User], int]:
-        if page < 1:
-            page = 1
-        if page_size < 1:
-            page_size = 10
-        if page_size > 100:
-            page_size = 100
-
         offset = (page - 1) * page_size
+        query = User.all()
 
-        # Base statements for data and count
-        data_query = select(User)
-        count_query = select(func.count()).select_from(User)
-
-        # Apply filters
-        conditions = []
         if filters.username_contains:
-            conditions.append(
-                User.username.ilike(f"%{filters.username_contains}%")
-            )  # Case-insensitive like
+            query = query.filter(username__icontains=filters.username_contains)
         if filters.email_equals:
-            conditions.append(User.email == filters.email_equals)
-        if (
-            filters.is_active is not None
-        ):  # Check for None explicitly because False is a valid value
-            conditions.append(User.is_active == filters.is_active)
+            query = query.filter(email=filters.email_equals)
+        if filters.is_active is not None:
+            query = query.filter(is_active=filters.is_active)
 
-        if conditions:
-            for condition in conditions:
-                data_query = data_query.where(condition)
-                count_query = count_query.where(
-                    condition
-                )  # Apply same conditions to count query
+        total_count = await query.count()
 
-        # Apply sorting (only to data query)
         if sort_by:
-            column_to_sort = getattr(User, sort_by, None)
-            if column_to_sort:  # Check if the sort_by field exists in User model
-                if sort_order.lower() == "desc":
-                    data_query = data_query.order_by(desc(column_to_sort))
-                else:
-                    data_query = data_query.order_by(asc(column_to_sort))
-            else:
-                # Optional: raise error or log if sort_by field is invalid
-                print(f"Warning: Invalid sort_by field: {sort_by}")
+            if sort_order.lower() == "desc":
+                sort_by = f"-{sort_by}"
+            query = query.order_by(sort_by)
 
-        # Add pagination to data query
-        data_query = data_query.offset(offset).limit(page_size)
+        users = await query.offset(offset).limit(page_size)
+        return users, total_count
 
-        # Execute queries
-        result_data = await self.db_session.exec(data_query)
-        users = result_data.all()
+    async def verify_email_token(self, token: str) -> Optional[User]:
+        # ค้นหาผู้ใช้ด้วย verification token ที่ระบุ
+        user = await User.get_or_none(email_verification_token=token)
 
-        total_count_result = await self.db_session.exec(count_query)
-        total_count = (
-            total_count_result.one_or_none() or 0
-        )  # Using one_or_none() as corrected
+        if not user:
+            # ไม่พบผู้ใช้ หรือ token ไม่ถูกต้อง
+            return None
 
-        return users, total_count  # type: ignore
+        if user.is_email_verified:
+            # อีเมลนี้ถูกยืนยันแล้ว
+            # คุณอาจจะต้องการให้ user ทราบ หรือจะ return user ไปเลยก็ได้
+            return user
+
+        # ตรวจสอบว่า token หมดอายุหรือไม่
+        if (
+            not user.email_verification_token_expires_at
+            or user.email_verification_token_expires_at < datetime.now(timezone.utc)
+        ):
+            # Token หมดอายุแล้ว, ล้าง token และเวลาหมดอายุ
+            user.email_verification_token = None
+            user.email_verification_token_expires_at = None
+            await user.save()  # บันทึกการเปลี่ยนแปลง
+            return None  # คืนค่า None เพื่อบ่งบอกว่า token หมดอายุ
+
+        # ถ้า token ถูกต้องและยังไม่หมดอายุ:
+        user.is_active = True  # ตั้งค่าให้ user active
+        user.is_email_verified = True  # ตั้งค่าว่าอีเมลถูกยืนยันแล้ว
+        user.email_verification_token = None  # ล้าง token หลังจากใช้งานแล้ว
+        user.email_verification_token_expires_at = None  # ล้างเวลาหมดอายุของ token
+        await user.save()  # บันทึกการเปลี่ยนแปลงทั้งหมด
+
+        return user
 
     async def update_user(
         self, *, user_id: int, user_in: UserUpdate
@@ -182,53 +173,49 @@ class UserService:
     async def create_user_session(
         self, user_id: int, refresh_token_value: str
     ) -> Session:
-        expires_delta = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)  #
+        user = await User.get_or_none(id=user_id)
+        if not user:
+            # This should ideally not happen if user_id is valid
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found for session creation",
+            )
+
+        expires_delta = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
         expires_at_dt = datetime.now(timezone.utc) + expires_delta
 
-        user_session = Session(
-            user_id=user_id,
+        user_session = await Session.create(
+            user=user,  # Pass the User object directly
             refresh_token=refresh_token_value,
             expires_at=expires_at_dt,
             is_active=True,
         )
-        self.db_session.add(user_session)
-        await self.db_session.commit()
-        await self.db_session.refresh(user_session)
         return user_session
 
     async def get_user_session_by_token(
         self, refresh_token_value: str
     ) -> Optional[Session]:
-        statement = select(Session).where(Session.refresh_token == refresh_token_value)
-        result = await self.db_session.exec(statement)
-        user_session = result.first()
-        return user_session
+        return await Session.get_or_none(refresh_token=refresh_token_value)
 
     async def deactivate_user_session(self, user_session: Session) -> Session:
         user_session.is_active = False
-        self.db_session.add(user_session)
-        await self.db_session.commit()
-        await self.db_session.refresh(user_session)
+        await user_session.save()  # Call .save() on the instance to persist changes
         return user_session
 
     async def deactivate_all_user_sessions(self, user_id: int) -> int:
         """Deactivates all active sessions for a given user_id and returns the count."""
-        statement = (
-            select(Session)
-            .where(Session.user_id == user_id)
-            .where(Session.is_active == True)
-        )
-        active_sessions_result = await self.db_session.exec(statement)
-        active_sessions = active_sessions_result.all()
-
-        count = 0
-        for session_to_deactivate in active_sessions:
-            session_to_deactivate.is_active = False
-            self.db_session.add(session_to_deactivate)
-            count += 1
+        # First, fetch the sessions to be deactivated
+        active_sessions = await Session.filter(user_id=user_id, is_active=True).all()
+        count = len(active_sessions)
 
         if count > 0:
-            await self.db_session.commit()
-        # No need to refresh individual sessions if just deactivating.
-        return count
+            # Update them in a loop or use a batch update if Tortoise supports it easily for this case.
+            # For simplicity, a loop:
+            for session_to_deactivate in active_sessions:
+                session_to_deactivate.is_active = False
+                await session_to_deactivate.save()
+            # Alternative using .update() if you don't need the objects themselves
+            # updated_rows = await Session.filter(user_id=user_id, is_active=True).update(is_active=False)
+            # return updated_rows # This would return the number of updated rows
 
+        return count

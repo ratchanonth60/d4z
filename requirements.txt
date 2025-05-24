@@ -5,7 +5,7 @@ debugpy
 asyncpg
 passlib[bcrypt]
 sqlmodel
-psycopg2[asyncpg]
+# psycopg2[asyncpg]
 sqlalchemy
 PyJWT
 greenlet
@@ -15,3 +15,8 @@ pytest-asyncio
 pytest-tornasync
 pytest-trio
 pytest-twisted
+fastapi-mail[all]
+tortoise-orm[asyncpg]
+aerich
+tomlkit
+
