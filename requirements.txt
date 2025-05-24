@@ -9,3 +9,9 @@ psycopg2[asyncpg]
 sqlalchemy
 PyJWT
 greenlet
+pytest
+anyio
+pytest-asyncio
+pytest-tornasync
+pytest-trio
+pytest-twisted

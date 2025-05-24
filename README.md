@@ -106,23 +106,31 @@ Once the application is running, you can access the interactive API documentatio
 
 ## 📁 Project Structure
 .
-├── app/                    # Application source code
-│   ├── api/                # API routers and endpoints
-│   ├── core/               # Core components (config, security, dependencies, exceptions)
-│   ├── db/                 # Database related (session, SQLModel setup)
-│   ├── models/             # SQLModel table models & Pydantic input/output models
-│   ├── schemas/            # Pydantic schemas (if separate from models)
-│   ├── services/           # Business logic layer
-│   ├── middlewares/        # Custom middlewares
-│   ├── contextmanager.py   # Lifespan context manager
-│   ├── main.py             # Main FastAPI application instance
-│   └── settings.py         # FastAPI app configuration assembly
-├── .env.example            # Example environment variables (ควรสร้างไฟล์นี้)
-├── .flake8                 # Flake8 configuration
-├── Dockerfile              # Docker configuration
-├── docker-compose.yml      # Docker Compose configuration
-├── requirements.txt        # Python dependencies
-└── README.md               # This file
+├── app/
+│   ├── api/
+│   │   └── v1/
+│   │       ├── endpoints/
+│   │       │   ├── auth.py
+│   │       │   └── users.py
+│   │       └── routers.py
+│   ├── core/
+│   ├── db/
+│   ├── models/
+│   ├── schemas/
+│   ├── services/
+│   ├── main.py
+│   └── settings.py
+├── tests/
+│   ├── conftest.py          # Fixtures and test configurations
+│   ├── test_main.py         # Tests for main app logic (e.g., root endpoint)
+│   └── api/
+│       └── v1/
+│           ├── test_auth.py
+│           └── test_users.py
+├── .env
+├── Dockerfile
+├── docker-compose.yml
+└── requirements.txt
 
 
  (adapted and expanded)
