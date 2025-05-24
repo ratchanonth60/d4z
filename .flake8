@@ -1,0 +1,27 @@
+[flake8]
+# ความยาวบรรทัดสูงสุด (แนะนำให้ตรงกับ Black formatter)
+max-line-length = 88
+
+# Codes ที่จะ ignore:
+# E203: whitespace before ':' (มักจะขัดแย้งกับ Black)
+# W503: line break before binary operator (PEP 8 แนะนำให้ break after, แต่ Black อาจจะทำแบบ before)
+# E501: line too long (จัดการโดย max-line-length และ Black อยู่แล้ว)
+# F401: 'module' imported but unused (บางครั้งอาจจะต้องการ ignore ชั่วคราวสำหรับ __init__.py หรือ re-exports)
+# F841: local variable 'name' is assigned to but never used (อาจจะ ignore ถ้ามีเหตุผล)
+ignore = E203, W503, E501
+
+# Path ที่ไม่ต้องการให้ flake8 ตรวจสอบ
+exclude =
+    .git,
+    __pycache__,
+    .pytest_cache,
+    docs,
+    build,
+    dist,
+    .venv,
+    venv,
+    env,
+    migrations/versions, # ถ้าใช้ Alembic และไม่ต้องการ lint auto-generated migration scripts
+    node_modules,
+    *.egg-info
+

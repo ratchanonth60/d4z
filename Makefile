@@ -5,7 +5,6 @@
 
 # Variables
 COMPOSE = docker-compose -f docker-compose.yml
-SERVICE ?= app
 
 # Help command
 help:

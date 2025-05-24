@@ -1,19 +1,19 @@
-from app.core.dependencies import JWTBearer
-from contextmanager import lifespan
-from core.config import settings
 from fastapi import Depends, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware import Middleware
-from core.exceptions import AuthenticationError
-from core.exception_handlers import (
+
+from app.contextmanager import lifespan
+from app.core.config import settings
+from app.core.dependencies import JWTBearer
+from app.core.exception_handlers import (
+    authentication_error_handler,
     http_exception_handler,
     internal_exception_handler,
     validation_exception_handler,
-    authentication_error_handler,
 )
-
+from app.core.exceptions import AuthenticationError
 
 EXCLUDED_PATHS = [
     "/",  # Root path ของ app (ถ้ามี)

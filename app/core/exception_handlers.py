@@ -4,15 +4,15 @@ from fastapi import HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.schemas.base_response import (
+from app.schemas.base_response import (  # สำคัญ: ใช้ตัวนี้สำหรับ HTTPException ทั่วไป
     ErrorDetail,
     ErrorResponse,
-)  # สำคัญ: ใช้ตัวนี้สำหรับ HTTPException ทั่วไป
+)
 
-from .exceptions import (
+from .exceptions import (  # Import custom exceptions ของเรา
     AuthenticationError,
     AuthorizationError,
-)  # Import custom exceptions ของเรา
+)
 
 log = logging.getLogger(__name__)  # สำหรับ log
 
@@ -31,7 +31,7 @@ async def http_exception_handler(
         errors=[ErrorDetail(message=exc.detail)],  # หรือจะใส่ detail ใน errors list ก็ได้
     )
     return JSONResponse(
-        status_code=exc.status_code,
+        status_code=status.HTTP_200_OK,
         content=error_resp.model_dump(exclude_none=True),  # Pydantic V2+
         headers=exc.headers,
     )
@@ -53,7 +53,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
     error_resp = ErrorResponse(message="Validation Error", errors=error_details)
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_200_OK,
         content=error_resp.model_dump(exclude_none=True),  # Pydantic V2+
     )
 
@@ -72,7 +72,7 @@ async def internal_exception_handler(request: Request, exc: Exception):
         # errors=[ErrorDetail(message=str(exc))] # Optional: ถ้าต้องการส่งรายละเอียด error (ระวัง sensitive info)
     )
     return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        status_code=status.HTTP_200_OK,
         content=error_resp.model_dump(exclude_none=True),  # Pydantic V2+
     )
 
@@ -82,10 +82,12 @@ async def authentication_error_handler(request: Request, exc: AuthenticationErro
     Handler for our custom AuthenticationError.
     """
     error_resp = ErrorResponse(
-        message=exc.detail, errors=[ErrorDetail(message=exc.detail)]
+        code=status.HTTP_401_UNAUTHORIZED,  # ใช้ 401 แทน 403
+        message=exc.detail,
+        errors=[ErrorDetail(message=exc.detail)],
     )
     return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
+        status_code=status.HTTP_200_OK,
         content=error_resp.model_dump(exclude_none=True),  # Pydantic V2+
         headers={"WWW-Authenticate": "Bearer"},
     )
@@ -96,9 +98,11 @@ async def authorization_error_handler(request: Request, exc: AuthorizationError)
     Handler for our custom AuthorizationError.
     """
     error_resp = ErrorResponse(
-        message=exc.detail, errors=[ErrorDetail(message=exc.detail)]
+        code=status.HTTP_403_FORBIDDEN,  # ใช้ 403 แทน 401
+        message=exc.detail,
+        errors=[ErrorDetail(message=exc.detail)],
     )
     return JSONResponse(
-        status_code=status.HTTP_403_FORBIDDEN,
+        status_code=status.HTTP_200_OK,
         content=error_resp.model_dump(exclude_none=True),  # Pydantic V2+
     )

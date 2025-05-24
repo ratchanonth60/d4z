@@ -11,6 +11,7 @@ class Base(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # Token หมดอายุใน 30 นาที
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # Token Refresh หมดอายุใน 8 วัน
+    DEBUG: bool = True  # เปิดหรือปิด debug mode
 
     class Config:
         env_file = ".env"

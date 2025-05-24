@@ -5,12 +5,12 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AuthenticationError  #
+from app.core.exceptions import AuthenticationError
 from app.core.security import decode_token  # ใช้ decode_token
 from app.db.sqlmodel_setup import get_sqlmodel_session
 from app.models.users import User
 from app.schemas.token_schema import TokenData
-from app.services.users import UserService  #
+from app.services.users import UserService
 
 
 class JWTBearer(HTTPBearer):
@@ -88,7 +88,7 @@ class JWTBearer(HTTPBearer):
         else:  # No credentials provided
             if self.auto_error:
                 raise AuthenticationError(message="Not authenticated.")
-            return None  # Allow anonymous if auto_error is False (though for global dep, auto_error=True is common)
+            return AuthenticationError(message="Not authenticated.")
 
 
 def get_user_service(

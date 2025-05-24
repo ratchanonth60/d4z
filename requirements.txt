@@ -8,3 +8,4 @@ sqlmodel
 psycopg2[asyncpg]
 sqlalchemy
 PyJWT
+greenlet
