@@ -3,7 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python -m debugpy --listen 0.0.0.0:5678 -m fastapi dev app/main.py --host 0.0.0.0 --port 8000
+    # Original command: python -m debugpy --listen 0.0.0.0:5678 -m fastapi dev app/main.py --host 0.0.0.0 --port 8000
+    # If you use `fastapi dev`, it uses uvicorn with reload.
+    # For production, you might use `uvicorn app.main:app --host 0.0.0.0 --port 8000`
+    command: >
+      sh -c "aerich upgrade && 
+             python -m debugpy --listen 0.0.0.0:5678 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
       - "5678:5678"
@@ -12,6 +17,9 @@ services:
     env_file:
       - .env
     working_dir: /fastapi
+    depends_on: # Ensure DB and Redis are up before app
+      - db
+      - redis
 
   db:
     image: postgres
@@ -21,11 +29,39 @@ services:
       - .env
     ports:
       - "5432:5432"
+    healthcheck: # Optional: Add healthcheck for PostgreSQL
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
-    image: redis
+    image: redis:alpine # Using alpine for smaller image
     ports:
       - "6379:6379"
+    healthcheck: # Optional: Add healthcheck for Redis
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A app.worker.celery_app worker -l info --concurrency=4
+    volumes:
+      - .:/fastapi
+    env_file:
+      - .env
+    working_dir: /fastapi
+    environment: # Add PYTHONPATH environment variable
+      - PYTHONPATH=/fastapi
+    depends_on:
+      redis:
+        condition: service_healthy # Worker depends on Redis
+      db: # If tasks need DB access
+        condition: service_healthy
 
 volumes:
   postgres_data:

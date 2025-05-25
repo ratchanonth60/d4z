@@ -19,4 +19,5 @@ fastapi-mail[all]
 tortoise-orm[asyncpg]
 aerich
 tomlkit
-
+celery[redis]
+celery

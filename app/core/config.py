@@ -15,6 +15,9 @@ class Base(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # Token Refresh หมดอายุใน 8 วัน
     DEBUG: bool = True  # เปิดหรือปิด debug mode
 
+    CELERY_BROKER_URL: str = "redis://redis:6379/0"  # Default for Docker Compose
+    CELERY_RESULT_BACKEND: str = "redis://redis:6379/0"  # Default for Docker Compose
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

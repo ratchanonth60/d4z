@@ -3,6 +3,26 @@ from datetime import datetime
 from fastapi_mail import FastMail, MessageSchema
 
 from app.core.config import settings
+from app.tasks.email_tasks import send_verification_email_task
+
+
+async def task_send_verification_email(
+    email_to: str, username: str, verification_link: str
+):
+    """
+    Sends a verification email by queuing a Celery task.
+    This function itself can remain async if called from async FastAPI code,
+    but the task it calls will be executed by a Celery worker.
+    """
+    print(f"Queueing verification email for {email_to} with username {username}")
+    # Call the Celery task using .delay() or .apply_async()
+    # .delay() is a shortcut for .apply_async()
+    send_verification_email_task.delay(  # type: ignore
+        email_to=email_to, username=username, verification_link=verification_link
+    )
+    # The task is now queued and will be picked up by a Celery worker.
+    # You don't await the task here if you want it to be non-blocking.
+    print(f"Verification email task for {email_to} has been queued.")
 
 
 async def send_verification_email(email_to: str, username: str, verification_link: str):
@@ -37,4 +57,3 @@ async def send_verification_email(email_to: str, username: str, verification_lin
         print(f"Error sending verification email to {email_to} using template: {e}")
         # Add robust error handling/logging here
         pass
-
