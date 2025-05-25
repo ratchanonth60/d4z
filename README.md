@@ -198,7 +198,7 @@ Once the application is running, access the interactive API documentation:
 
 ## ⚖️ License
 
-This project is licensed under the terms of the Apache 2.0 license. (Ensure you have a `LICENSE` file or update if different).
+This project is licensed under the terms of the Apache 2.0 license. 
 
 ## 🤝 Contributing
 
