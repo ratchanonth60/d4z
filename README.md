@@ -28,10 +28,10 @@ A modern web application built with **FastAPI**, featuring secure authentication
     * Refresh Token rotation and server-side session management for enhanced security.
     * Password hashing using `passlib` (bcrypt).
     * Logout functionality.
-* **异步任务处理 (Asynchronous Task Processing) with Celery:**
+* **Task Processing with Celery:**
     * **📧 Asynchronous Email Sending:** Email notifications (e.g., verification emails) are sent via Celery tasks, preventing blocking of API responses.
     * **📈 Scalable Background Workers:** Celery workers can be scaled independently to handle varying loads of background tasks.
-    * **可靠的消息队列 (Reliable Message Queuing) with Redis:** Uses Redis as a robust message broker for Celery.
+    * **Reliable Message Queuing with Redis:** Uses Redis as a robust message broker for Celery.
 * **📧 Email Integration with `fastapi-mail`:** Sends HTML templated emails for verification (now processed by Celery).
 * **🧪 Testing with Pytest:**
     * Comprehensive unit and integration tests using `pytest` and `pytest-asyncio`.
@@ -107,7 +107,7 @@ A modern web application built with **FastAPI**, featuring secure authentication
     source venv/bin/activate  # On Windows: venv\Scripts\activate
     pip install -r requirements.txt
     ```
-    Ensure `requirements.txt` includes `celery[redis]`. [cite: celery_integration_requirements]
+    Ensure `requirements.txt` includes `celery[redis]`.
 
 2.  **Set up environment variables** (as described in the Docker section).
 
