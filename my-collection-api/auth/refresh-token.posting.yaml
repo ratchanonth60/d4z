@@ -1,0 +1,14 @@
+name: refresh_token
+method: POST
+url: http://127.0.0.1:8000/api/v1/auth/refresh_token
+body:
+  content: |-
+    {
+      "refresh_token": ""
+    }
+  content_type: application/json
+headers:
+- name: Accept
+  value: application/json
+- name: Content-Type
+  value: application/json

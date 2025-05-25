@@ -69,4 +69,3 @@ def decode_token(token: str) -> TokenData | None:
     except Exception:
         # Log unexpected errors
         raise  # Re-raise
-

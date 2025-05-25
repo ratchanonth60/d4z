@@ -27,17 +27,21 @@ class SettingsDB(Base):
     POSTGRES_PORT: str = "5432"
     POSTGRES_DB: str = "mydatabase"
     DATABASE_URL: str | None = None
+    DATABASE_DSN: str | None = None  # For main app
 
-    # สำหรับ asyncpg
-    DATABASE_DSN: str | None = None
+    TEST_POSTGRES_DB: str = "mydatabase_test"
+    TEST_DATABASE_DSN: str | None = None
 
     def __init__(self, **values):
         super().__init__(**values)
         if not self.DATABASE_URL:
             self.DATABASE_URL = f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         if not self.DATABASE_DSN:
-            # ใช้ asyncpg scheme สำหรับ Tortoise ORM
             self.DATABASE_DSN = f"asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
+        # Construct Test Database DSN
+        if not self.TEST_DATABASE_DSN:
+            self.TEST_DATABASE_DSN = f"asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.TEST_POSTGRES_DB}"
 
 
 class EmailSettings(Base):

@@ -185,7 +185,7 @@ class UserService:
         expires_at_dt = datetime.now(timezone.utc) + expires_delta
 
         user_session = await Session.create(
-            user=user,  # Pass the User object directly
+            user_id=user.id,  # Pass the User object directly
             refresh_token=refresh_token_value,
             expires_at=expires_at_dt,
             is_active=True,
