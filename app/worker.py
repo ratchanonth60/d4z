@@ -27,7 +27,22 @@ celery_app.conf.update(
     timezone="UTC",  # Or your preferred timezone
     enable_utc=True,
     # broker_connection_retry_on_startup=True # For Celery 5+
+    broker_transport_options={
+        "max_retries": 10,  # Number of retries
+        "interval_start": 0,  # Do not sleep initially
+        "interval_step": 0.5,  # Increase delay by 0.5s per retry
+        "interval_max": 3,  # Maximum delay between retries is 3s
+    },
 )
+
+
+@celery_app.task
+def divide(x, y):
+    import time
+
+    time.sleep(5)
+    return x / y
+
 
 # If you have tasks in other files, Celery can automatically discover them.
 # celery_app.autodiscover_tasks() # This would look for tasks.py in installed apps if using Django structure.
