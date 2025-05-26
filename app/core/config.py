@@ -17,7 +17,6 @@ class Base(BaseSettings):
 
     CELERY_BROKER_URL: str = "redis://redis:6379/0"  # Default for Docker Compose
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/0"  # Default for Docker Compose
-    PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = 1
 
     class Config:
         env_file = ".env"
@@ -50,6 +49,7 @@ class SettingsDB(Base):
 
 class EmailSettings(Base):
     EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = 1
+    PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = 1
     BASE_URL: str = "http://localhost:8000"
 
     MAIL_USERNAME: str = "your_smtp_username"

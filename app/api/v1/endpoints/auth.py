@@ -320,6 +320,18 @@ async def request_password_reset(  #
     form_data: PasswordResetRequestForm,  #
     user_service: Annotated[UserService, Depends(get_user_service)],  #
 ):
+    """
+    ### Request Password Reset.
+
+    Initiates a password reset process for a user by sending an email with a reset token.
+    Always returns a successful response to prevent email enumeration.
+
+    **Request Body:**
+    - `email`: The user's email address (string, required).
+
+    **Responses:**
+    - `200 OK`: Password reset email has been sent (or process initiated).
+    """
     await user_service.request_password_reset(form_data.email)  #
     return BaseResponse(  #
         message="If an account with that email exists, a password reset link has been sent."  #
@@ -331,6 +343,20 @@ async def reset_password(  #
     form_data: PasswordResetForm,  #
     user_service: Annotated[UserService, Depends(get_user_service)],  #
 ):
+    """
+    ### Reset Password.
+
+    Resets the user's password using a valid password reset token.
+
+    **Request Body:**
+    - `token`: The password reset token (string, required).
+    - `new_password`: The new password for the user (string, required).
+    - `new_password_confirm`: Confirmation of the new password (string, required).
+
+    **Responses:**
+    - `200 OK`: Password reset successfully. Returns `UserRead` data.
+    - `400 Bad Request`: Invalid or expired token, or passwords do not match.
+    """
     if form_data.new_password != form_data.new_password_confirm:  #
         raise HTTPException(  #
             status_code=status.HTTP_400_BAD_REQUEST,  #
