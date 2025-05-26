@@ -49,6 +49,7 @@ class SettingsDB(Base):
 
 class EmailSettings(Base):
     EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = 1
+    PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = 1
     BASE_URL: str = "http://localhost:8000"
 
     MAIL_USERNAME: str = "your_smtp_username"

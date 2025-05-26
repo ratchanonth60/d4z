@@ -22,6 +22,12 @@ class User(models.Model):
     email_verification_token_expires_at = fields.DatetimeField(null=True)
     is_email_verified = fields.BooleanField(default=False)
 
+    # Fields for password reset
+    password_reset_token = fields.CharField(
+        max_length=128, null=True, unique=True, index=True
+    )
+    password_reset_token_expires_at = fields.DatetimeField(null=True)
+
     sessions: fields.ReverseRelation["app.models.session.Session"]  # type: ignore
     # Relationships (จะนิยามใน Session model ด้วย)
     # sessions: fields.ReverseRelation["Session"] # หรือ fields.OneToManyRelation

@@ -17,7 +17,14 @@ from app.core.security import (
 
 from app.models.users import UserCreate, UserRead
 from app.schemas.base_response import BaseResponse
-from app.schemas.token_schema import LogoutRequest, RefreshTokenRequest, Token
+from app.schemas.token_schema import (
+    LogoutRequest,
+    PasswordResetForm,
+    PasswordResetRequestForm,
+    RefreshTokenRequest,
+    ResendVerificationEmailRequestForm,
+    Token,
+)
 from app.services.users import UserService
 
 router = APIRouter()
@@ -307,3 +314,92 @@ async def verify_user_email(
         message="Email verified successfully. Your account is now active.", data=user
     )
 
+
+@router.post("/request-password-reset", response_model=BaseResponse[None])  #
+async def request_password_reset(  #
+    form_data: PasswordResetRequestForm,  #
+    user_service: Annotated[UserService, Depends(get_user_service)],  #
+):
+    """
+    ### Request Password Reset.
+
+    Initiates a password reset process for a user by sending an email with a reset token.
+    Always returns a successful response to prevent email enumeration.
+
+    **Request Body:**
+    - `email`: The user's email address (string, required).
+
+    **Responses:**
+    - `200 OK`: Password reset email has been sent (or process initiated).
+    """
+    await user_service.request_password_reset(form_data.email)  #
+    return BaseResponse(  #
+        message="If an account with that email exists, a password reset link has been sent."  #
+    )
+
+
+@router.post("/reset-password", response_model=BaseResponse[UserRead])  #
+async def reset_password(  #
+    form_data: PasswordResetForm,  #
+    user_service: Annotated[UserService, Depends(get_user_service)],  #
+):
+    """
+    ### Reset Password.
+
+    Resets the user's password using a valid password reset token.
+
+    **Request Body:**
+    - `token`: The password reset token (string, required).
+    - `new_password`: The new password for the user (string, required).
+    - `new_password_confirm`: Confirmation of the new password (string, required).
+
+    **Responses:**
+    - `200 OK`: Password reset successfully. Returns `UserRead` data.
+    - `400 Bad Request`: Invalid or expired token, or passwords do not match.
+    """
+    if form_data.new_password != form_data.new_password_confirm:  #
+        raise HTTPException(  #
+            status_code=status.HTTP_400_BAD_REQUEST,  #
+            detail="New passwords do not match.",  #
+        )
+
+    user = await user_service.reset_password(  #
+        token=form_data.token,
+        new_password=form_data.new_password,  #
+    )
+    if not user:  #
+        raise HTTPException(  #
+            status_code=status.HTTP_400_BAD_REQUEST,  #
+            detail="Invalid or expired password reset token.",  #
+        )
+    return BaseResponse(message="Password has been reset successfully.", data=user)  #
+
+
+@router.post("/resend-verification-email", response_model=BaseResponse[None])
+async def resend_verification_email_endpoint(
+    form_data: ResendVerificationEmailRequestForm,
+    user_service: Annotated[UserService, Depends(get_user_service)],
+):
+    """
+    ### Resend Verification Email.
+
+    Allows a user to request a new email verification link if the previous one expired
+    or was not received.
+
+    **Request Body:**
+    - `email`: The user's email address (string, required).
+
+    **Responses:**
+    - `200 OK`: Verification email has been resent (or process initiated).
+    """
+    success = await user_service.resend_verification_email(form_data.email)
+    if success:
+        return BaseResponse(
+            message="If an unverified account with that email exists, a new verification link has been sent."
+        )
+    else:
+        # This path might be taken if user is already verified or email doesn't exist.
+        # Still return a generic message to prevent enumeration.
+        return BaseResponse(
+            message="If an unverified account with that email exists, a new verification link has been sent."
+        )

@@ -9,21 +9,25 @@ from app.core.config import settings
 from app.core.dependencies import JWTBearer
 from app.core.exception_handlers import (
     authentication_error_handler,
+    authorization_error_handler,
     http_exception_handler,
     internal_exception_handler,
     validation_exception_handler,
 )
-from app.core.exceptions import AuthenticationError
+from app.core.exceptions import AuthenticationError, AuthorizationError
 
-EXCLUDED_PATHS = [
-    "/",  # Root path ของ app (ถ้ามี)
-    "/api/v1/auth/login",  # Login endpoint
-    "/api/v1/auth/refresh_token",  # Refresh token endpoint
-    "/api/v1/auth/verify-email/",
-    "/api/v1/auth/register",
-    "/docs",
-    "/openapi.json",
-    "/redoc",
+EXCLUDED_PATHS = [  #
+    "/",  #
+    "/api/v1/auth/login",  #
+    "/api/v1/auth/refresh_token",  #
+    "/api/v1/auth/verify-email/",  #
+    "/api/v1/auth/register",  #
+    "/api/v1/auth/request-password-reset",  #
+    "/api/v1/auth/reset-password",  #
+    "/api/v1/auth/resend-verification-email",  # New
+    "/docs",  #
+    "/openapi.json",  #
+    "/redoc",  #
 ]
 
 app_config = {
@@ -40,6 +44,7 @@ app_config = {
         RequestValidationError: validation_exception_handler,  #
         Exception: internal_exception_handler,  #
         AuthenticationError: authentication_error_handler,  #
+        AuthorizationError: authorization_error_handler,  # Assuming you have this handler defined
     },
     "dependencies": [
         Depends(JWTBearer(excluded_paths=EXCLUDED_PATHS, auto_error=True))
