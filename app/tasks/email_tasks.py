@@ -1,10 +1,13 @@
 from datetime import datetime
+import logging
 
 from celery import shared_task
 from fastapi_mail import FastMail, MessageSchema
 import asyncio
 
 from app.core.config import settings  #
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
@@ -32,9 +35,9 @@ def send_verification_email_task(
     )
     fm = FastMail(mail_conf)
     try:
-        print(
+        logger.info(
             f"Task send_verification_email_task: Attempting to send email to {email_to}"
-        )  #
+        )
 
         async def send_async():
             await fm.send_message(message, template_name="verification_email.html")
@@ -44,14 +47,15 @@ def send_verification_email_task(
             loop.run_until_complete(send_async())
         except RuntimeError:
             asyncio.run(send_async())
-        print(
+        logger.info(
             f"Task send_verification_email_task: Verification email sent to {email_to}"
-        )  #
+        )
         return {"message": "Email sent successfully", "recipient": email_to}  #
     except Exception as exc:
-        print(
-            f"Task send_verification_email_task: Error sending email to {email_to}: {exc}"
-        )  #
+        logger.error(
+            f"Task send_verification_email_task: Error sending email to {email_to}: {exc}",
+            exc_info=True,  # This will include stack trace for the error
+        )
         raise self.retry(exc=exc)  #
 
 
@@ -80,7 +84,7 @@ def send_password_reset_email_task(  #
     )
     fm = FastMail(mail_conf)  #
     try:
-        print(
+        logger.info(
             f"Task send_password_reset_email_task: Attempting to send email to {email_to}"
         )  #
 
@@ -92,7 +96,7 @@ def send_password_reset_email_task(  #
             loop.run_until_complete(send_async())  #
         except RuntimeError:  #
             asyncio.run(send_async())  #
-        print(
+        logger.info(
             f"Task send_password_reset_email_task: Password reset email sent to {email_to}"
         )  #
         return {
@@ -100,7 +104,7 @@ def send_password_reset_email_task(  #
             "recipient": email_to,
         }  #
     except Exception as exc:
-        print(
+        logger.info(
             f"Task send_password_reset_email_task: Error sending email to {email_to}: {exc}"
         )  #
         raise self.retry(exc=exc)  #

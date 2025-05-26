@@ -12,7 +12,7 @@ class User(models.Model):
     hashed_password = fields.CharField(
         max_length=255
     )  # Tortoise ไม่มี CharField ไม่จำกัดความยาวโดยตรง
-    is_active = fields.BooleanField(default=False)
+    is_active = fields.BooleanField(default=False, index=True)
     is_superuser = fields.BooleanField(default=False)
 
     # Fields สำหรับ email verification

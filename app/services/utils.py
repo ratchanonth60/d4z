@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi_mail import FastMail, MessageSchema
+from fastapi_mail import FastMail, MessageSchema, MessageType
 from pydantic import EmailStr
 
 from app.core.config import settings  #
@@ -50,7 +50,7 @@ async def send_verification_email(email_to: str, username: str, verification_lin
         subject=f"Verify your email address for {settings.APP_TITLE}",
         recipients=[email_to],
         template_body=template_body_context,
-        subtype="html",
+        subtype=MessageType.html,  # Use MessageType enum for subtype
     )
 
     try:
@@ -82,7 +82,7 @@ async def send_password_reset_email(email_to: str, username: str, reset_link: st
         subject=f"Password Reset Request for {settings.APP_TITLE}",  #
         recipients=[email_to],  #
         template_body=template_body_context,  #
-        subtype="html",  #
+        subtype=MessageType.html,  #
     )
 
     try:

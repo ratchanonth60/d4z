@@ -7,6 +7,7 @@ from fastapi.security import (
     OAuth2PasswordRequestForm,
 )
 
+from app.core.dependencies import get_user_service
 from app.core.exceptions import AuthenticationError
 from app.core.security import (
     create_access_token,
@@ -28,10 +29,6 @@ from app.schemas.token_schema import (
 from app.services.users import UserService
 
 router = APIRouter()
-
-
-def get_user_service() -> UserService:
-    return UserService()
 
 
 @router.post("/login", response_model=BaseResponse[Token])
@@ -130,7 +127,7 @@ async def refresh_access_token(
             await user_service.deactivate_user_session(user_session)
             raise AuthenticationError(message="Refresh token has expired")
 
-        user = await user_service.get_user_by_id(user_id=user_session.user_id)
+        user = await user_service.get_user_by_id(user_id=user_session.user_id)  # type: ignore
         if not user:
             await user_service.deactivate_user_session(user_session)
             raise AuthenticationError(
@@ -225,14 +222,14 @@ async def logout_user(
             if user_from_access_token:
                 user_id_from_access_token = user_from_access_token.id
 
-        if user_id_from_access_token != user_session.user_id:
+        if user_id_from_access_token != user_session.user_id:  # type: ignore
             # Log potential mismatch but still invalidate the target refresh token for security.
             # This prevents a user from using their access token to enumerate other users' refresh tokens
             # if they somehow got hold of one. The primary action is to invalidate the *provided* refresh token.
             print(
                 f"Warning: Logout attempt with mismatched user context. "
                 f"Access token user ID: {user_id_from_access_token}, "
-                f"Refresh token owner ID: {user_session.user_id}"
+                f"Refresh token owner ID: {user_session.user_id}"  # type: ignore
             )
             # To strictly prevent user A from logging out user B's refresh token:
             # raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Refresh token does not belong to the authenticated user.")

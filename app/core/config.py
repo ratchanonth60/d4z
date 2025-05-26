@@ -77,7 +77,7 @@ class EmailSettings(Base):
     def mail_connection_config(self) -> ConnectionConfig:
         return ConnectionConfig(
             MAIL_USERNAME=self.MAIL_USERNAME,
-            MAIL_PASSWORD=self.MAIL_PASSWORD,
+            MAIL_PASSWORD=self.MAIL_PASSWORD,  # type: ignore
             MAIL_FROM=self.MAIL_FROM,
             MAIL_PORT=self.MAIL_PORT,
             MAIL_SERVER=self.MAIL_SERVER,
@@ -90,7 +90,7 @@ class EmailSettings(Base):
             / "email",  # Point to the 'email' subfolder
         )
 
-    class Config:
+    class Config(Base.Config):
         env_file = ".env"
         env_file_encoding = "utf-8"
 
